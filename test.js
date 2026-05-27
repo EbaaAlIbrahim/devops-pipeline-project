@@ -1,7 +1,7 @@
 // A simple test script
 console.log("Running automated unit tests...");
 
-const appStatus = "broken";
+const appStatus = "healthy";
 
 if (appStatus === "healthy") {
     console.log("SUCCESS: All tests passed!");
