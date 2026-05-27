@@ -1,0 +1,26 @@
+name: Continuous Integration
+
+# Trigger the pipeline on every push to the main branch
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  run-tests:
+    # Tell GitHub to spin up a fresh, temporary Ubuntu Linux cloud server
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Copy our code onto the fresh Linux server
+      - name: Download Repository Code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js runtime on the server
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Step 3: Run the test script we wrote in Step 2
+      - name: Execute Application Tests
+        run: npm test
