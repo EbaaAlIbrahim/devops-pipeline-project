@@ -1,46 +1,63 @@
-name: CI/CD Pipeline
+name: Complete DevOps Lifecycle Pipeline
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  # Phase 1: The Quality Guardrail (Continuous Integration)
+  # Phase 1: Test the Code
   continuous-integration:
     runs-on: ubuntu-latest
     steps:
       - name: Download Repository Code
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Execute Application Tests
         run: npm test
 
-  # Phase 2: The Package Factory (Continuous Delivery)
+  # Phase 2: Package the Code into a Container
   continuous-delivery:
-    needs: continuous-integration # Only run this if the tests pass!
+    needs: continuous-integration
     runs-on: ubuntu-latest
     steps:
       - name: Download Repository Code
         uses: actions/checkout@v4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build and Push Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/devops-demo-app:latest
 
+  # Phase 3: Ship / Deploy Natively onto Your Machine
+  continuous-deployment:
+    needs: continuous-delivery
+    runs-on: self-hosted  # This forces GitHub to use your active "Listening" window!
+    steps:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and Push Container Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          # This automatically tags the image with your Docker Hub username
-          tags: ${{ secrets.DOCKER_USERNAME }}/devops-demo-app:latest
+      - name: Deploy Container Live
+        run: |
+          # Pull down the brand-new built image from your warehouse
+          docker pull ${{ secrets.DOCKER_USERNAME }}/devops-demo-app:latest
+          
+          # Safely shut down and wipe any previous version running on this machine
+          docker stop live-production-app || true
+          docker rm live-production-app || true
+          
+          # Boot up the updated live container application
+          docker run -d --name live-production-app ${{ secrets.DOCKER_USERNAME }}/devops-demo-app:latest
